@@ -2,11 +2,14 @@ name: Build Android APK
 
 on:
   push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: build
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -29,18 +32,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Prepare web files and icon
+      - name: Prepare web files
         run: |
-          mkdir -p www assets
+          mkdir -p www
           cp index.html style.css app.js www/
-          cp icon-1024.png assets/icon-only.png
 
       - name: Add Android platform
         run: npx cap add android
 
-      - name: Generate app icons
-        continue-on-error: true
-        run: npx capacitor-assets generate --android --iconBackgroundColor '#111111' --iconBackgroundColorDark '#111111'
+      - name: Apply app icon
+        run: |
+          if [ -f android-icons.zip ]; then
+            unzip -o android-icons.zip -d android/app/src/main/res
+          else
+            echo "::warning::android-icons.zip not found, building with the default icon"
+          fi
 
       - name: Sync
         run: npx cap sync android
