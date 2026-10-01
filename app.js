@@ -415,6 +415,26 @@ function render() {
 
 document.getElementById("addProjectBtn").addEventListener("click", addProject);
 
+// الثيم: فاتح / داكن
+const THEME_KEY = "project-tree-theme";
+
+function applyTheme(theme, remember) {
+    document.documentElement.dataset.theme = theme;
+    document.getElementById("themeBtn").textContent = theme === "dark" ? "☀️" : "🌙";
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = theme === "dark" ? "#1a1a1c" : "#ffffff";
+    if (remember) {
+        try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+    }
+}
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(next, true);
+});
+
+applyTheme(document.documentElement.dataset.theme || "light", false);
+
 // زر الرجوع في أندرويد: يرجع مستوى، وإذا بالرئيسية يطلع من التطبيق
 const CapApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
 if (CapApp) {
