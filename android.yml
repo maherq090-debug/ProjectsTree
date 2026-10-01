@@ -1,0 +1,71 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Prepare web files and icon
+        run: |
+          mkdir -p www assets
+          cp index.html style.css app.js www/
+          cp icon-1024.png assets/icon-only.png
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Generate app icons
+        continue-on-error: true
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#111111' --iconBackgroundColorDark '#111111'
+
+      - name: Sync
+        run: npx cap sync android
+
+      - name: Use fixed signing key
+        run: |
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore
+
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ProjectTree.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Project Tree build ${{ github.run_number }}
+          files: ProjectTree.apk
+
+      - name: Keep a copy as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProjectTree-APK
+          path: ProjectTree.apk
